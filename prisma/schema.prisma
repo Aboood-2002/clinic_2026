@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")  // Path relative to schema.prisma
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   // "admin" | "doctor" | "receptionist"
+  createdAt DateTime @default(now())
+
+}
+
+model Patient {
+  id        Int      @id @default(autoincrement())
+  name      String
+  age       Int?
+  dateOfBirth DateTime?
+  gender    String?
+  phone     String  
+  bloodType String?
+  nationalID String?
+  address  String?
+  createdAt DateTime @default(now())
+
+  queues    Queue[]
+  visits    Visit[]
+  appointments Appointment[]
+}
+
+model Queue {
+  id        Int      @id @default(autoincrement())
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  patientId Int
+  position  Int
+  reason    String?  // ← This is the "Reason for visit" field in your modal
+  priority  String   @default("normal")  // normal | high | urgent | consultation
+  status    String   @default("waiting")
+  queuedAt  DateTime @default(now())
+
+  appointment Appointment?
+
+  @@index([status])
+  @@index([priority])
+  @@index([queuedAt])
+}
+
+enum VisitType {
+  consultation
+  examination
+}
+
+model Visit {
+  id             Int      @id @default(autoincrement())
+  patient        Patient  @relation(fields: [patientId], references: [id])
+  patientId      Int
+  doctorUsername String?   // NEW: Stores doctor's name like "Dr. Ahmed Hassan"
+  visitType      VisitType @default(consultation)
+  chiefComplaint String?
+  diagnosis      String?
+  notes          String?
+  status         String   @default("pending")  // pending | in_progress | completed | cancelled
+  visitDate      DateTime @default(now())
+
+  prescriptions  Prescription[]
+  appointment Appointment?
+
+  @@index([patientId])
+  @@index([visitDate])
+  @@index([doctorUsername])
+}
+
+model Prescription {
+  id           Int          @id @default(autoincrement())
+  visit        Visit        @relation(fields: [visitId], references: [id])
+  visitId      Int
+  additionalNotes String?   // NEW: For "Additional Notes"
+  consultationDate DateTime?
+  prescribedAt DateTime     @default(now())
+
+  medications  Medication[] // One-to-many
+}
+
+model Medication {
+  id             Int          @id @default(autoincrement())
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  prescriptionId Int
+  name           String       // Medication Name
+  dosage         String?      // e.g., "500mg"
+  frequency      String?      // e.g., "Twice daily"
+  duration       String?      // e.g., "30 days"
+  instructions   String?      // Special Instructions per med
+
+  @@index([prescriptionId])
+}
+
+model ClinicHours {
+  id           Int      @id @default(autoincrement())
+  dayOfWeek    Int      // 0=Sunday .. 6=Saturday
+  openTime     String   // "HH:mm"
+  closeTime    String   // "HH:mm"
+  slotMinutes  Int      @default(20)
+  isClosed     Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([dayOfWeek])
+}
+
+model Appointment {
+  id              Int        @id @default(autoincrement())
+  patient         Patient    @relation(fields: [patientId], references: [id])
+  patientId       Int
+  scheduledAt     DateTime
+  durationMinutes Int        @default(20)
+  visitType       VisitType  @default(consultation)
+  status          String     @default("booked") // booked | checked_in | cancelled | completed | no_show
+  isNewPatient    Boolean    @default(false)
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  visit           Visit?     @relation(fields: [visitId], references: [id])
+  visitId         Int?       @unique
+  queue           Queue?     @relation(fields: [queueId], references: [id])
+  queueId         Int?       @unique
+
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([patientId])
+}
