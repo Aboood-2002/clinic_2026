@@ -10,6 +10,7 @@ import queuesRoutes from './routes/queues.routes.js';
 import prescriptionsRoutes from './routes/prescriptions.routes.js';
 import clinicHoursRoutes from './routes/clinicHours.routes.js';
 import appointmentsRoutes from './routes/appointments.routes.js';
+import reportsRoutes from './routes/reports.routes.js';
 import { notFound, errorHandler } from "./middlewares/errors.middleware.js"
 
 import dotenv from 'dotenv';
@@ -33,6 +34,7 @@ app.use('/api/queues', queuesRoutes);
 app.use('/api/prescriptions', prescriptionsRoutes);
 app.use('/api/clinic-hours', clinicHoursRoutes);
 app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Error handler middleware
 
